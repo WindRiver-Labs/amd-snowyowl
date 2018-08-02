@@ -1,0 +1,119 @@
+		AMD SnowyOwl BSP
+
+Table of Contents
+=================
+
+1. Supported Boards
+2. Change History
+3. BSP Notes
+
+1. Supported Boards
+===================
+
+This BSP supports the following boards:
+
+  + AMD EPYC Embedded 3000 Series SnowyOwl platform
+
+2. Change History
+=================
+  - 2020/06 (LINUXPG-432) Add AMD SnowyOwl support.
+
+3. BSP Notes
+===============
+
+3.1 AMD SnowyOwl
+=================
+
+The AMD Snowy Owl is AMD EPYC 3000 series product, featuring DDR4 DIMMs,
+up to 8 10GbE Ethernet controller.
+
+3.1.1 Validated Board Info
+--------------------------
+
+	[Board info]
+	Vendor: AMD Corporation
+	Platform: AMD  Wallaby
+
+	[BIOS info]
+        Vendor: American Megatrends
+        Core Version:  5.12
+        Date: 07/11/2017
+        Project Version: WWB7713X X64
+
+	[SoC info]
+        Processor: AMD Eng Sample: ZE3251BGR88AF_31/21_Y(AMD EPYC 3000 Series Snowy Owl)
+        Microcode: 0x8001206
+	stepping: 2
+	cpu family: 23
+
+3.1.2 Supported Features
+-------------------------
+
+The following BSP features are validated and supported on boards where
+the corresponding h/w features exist.
+
+  o General Platform
+	+ perf: H/W based PMU
+
+  o Bus
+	+ I2C/SMBus: 
+		+ AMD SMBus controller
+	+ PCI/PCI-Express
+
+  o Network
+	+ AMD Onboard 10Gb Ethernet controller
+
+  o USB
+	+ USB 2.0 EHCI controller
+	+ USB 3.0 XHCI controller
+
+  o Storage
+	+ SATA: AHCI SATA controller
+	+ eMMC: Secure Digital Host Controller
+
+  o Multimedia
+	+ AMD (Azalia) HD Audio:
+		+ HDMI/DisplayPort HD Audio
+	+ Graphics:
+		+ AMD Radeon™ 7700/7800 Series Graphics
+
+  o Power Management
+	+ Standby: BIOS needs to support ACPI S1
+	+ CPU Freq: BIOS needs to support ACPI P-state
+	+ CPU Idle: BIOS needs to support ACPI C-state
+
+  o Misc Devices
+	+ GPIO
+	+ RTC: PC-style CMOS RTC
+	+ Input device
+		+ USB mouse & keyboard
+
+
+3.1.3 Unsupported Features
+--------------------------
+
+The following features are not supported or validated:
+1) AMD Watchdog
+2) S3 and S4
+3) Onboard Audio
+
+
+3.1.4 Known Issues 
+------------------ 
+1) When IOMMU is enabled, the probe of the MMC card would fail with errors like
+this:
+        [ 5.445699] mmc0: ADMA error 
+        [ 5.445746] mmc0: error -5 whilst initialising MMC card
+You can workaround this issue by disabling the IOMMU with the "iommu=off"
+kernel parameter.
+
+2) dmesg show "ttyS0 - failed to request DMA" this should be hardware issue
+   and won't impact the using of ttyS0 console.
+
+
+3.1.5 Notes
+------------
+We have observed that the Ethernet PHY continually link up/down when two AMD
+boards are connected directly. This issue only occur when using some specific
+SFP modules, such as Finisar FTLX8574D3BCL. Please consider to change to
+another kind of SFP modules if you also observe this issue.

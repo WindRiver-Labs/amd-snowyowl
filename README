@@ -1,1 +1,546 @@
-This layer is not available on branch 'master'.  See product branch.
+
+               AMD SnowyOwl BSP
+
+1. About this document
+======================
+
+This document describes common and non-hardware specific information.
+Please refer to README.hardware for hardware specific information.
+
+Dependencies
+------------
+This layer depends on the oe-core version supplied with Wind River
+Linux and the wr-kernel layer.
+
+Maintenance
+-----------
+This layer is maintained by Wind River Systems, Inc.
+Contact <support@windriver.com> or your support representative for more
+information on submitting changes.
+
+Building the amd-snowyowl layer
+----------------------------------
+This layer and the wr-kernel layer should be added to bblayers.conf. This
+is done automatically when using the Wind River setup.sh wrapper.
+
+Note:
+To build a 64-bit kernel + 64-bit rootfs, use:
+
+    --machine=amd-snowyowl
+
+Multilib is also supported by this BSP.
+
+1. To add 32-bit multilib support for an existing project, use:
+
+    bitbake lib32-wrlinux-image-glibc-std
+
+3. To add 32-bit mulilib support for a specific package, use:
+
+    bitbake lib32-<pkg-name>
+
+License
+-------
+Copyright (C) 2020 Wind River Systems, Inc.
+
+Source code included in the tree for individual recipes is under the LICENSE
+stated in the associated recipe (.bb file) unless otherwise stated.
+
+The metadata is under the following license unless otherwise stated.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
+2. BSP Kernel and RootFS Combination
+====================================
+
+The following table summarizes the valid Wind River Linux distros for this BSP.
+'Y' in each content cell stands for supported; 'N' stands for not supported:
+
+  +--------------+-------------+-------------+-------------+
+  | valid/distro |   wrlinux   | wrlinux-cgl | wrlinux-ovp |
+  +--------------+-------------+-------------+-------------+
+  |    valid     |      Y      |      N      |      N      |
+  +--------------+-------------+-------------+-------------+
+
+For the supported kernel type for this BSP, please check the TARGET_SUPPORTED_KTYPES
+by running 'bitbake -e virtual/kernel | grep "^TARGET_SUPPORTED_KTYPES="'.
+
+Note: The preempt-rt kernel type can be used with this BSP/Machine.
+
+3. BSP Specific Patches
+=======================
+
+To get a list of patches applied to the kernel specific to this BSP along with
+patch descriptions use git-whatchanged on the default kernel 
+(git-whatchanged <kernel_type>..<bsp_name>). For example:
+
+	%> cd tmp-glibc/work-shared/<bsp_name>/kernel-source
+	%> git whatchanged standard/base..standard/amd-x86
+
+4. Boot Instructions
+====================
+
+4.1 Boot methods
+================
+
+Check your BIOS Setup for boot media configuration options on your specific
+hardware. The CD/DVD drive, SATA hard disk and USB storage device for system
+boot are available on the boards listed in README.hardware. EFI, SAS, PXELINUX
+are optional on some targets. Please refer to README.hardware for details.
+
+4.1.1 PXELINUX
+--------------
+
+The BIOS on most targets supports booting from NIC via PXE ROM. To enable PXE
+ROM the following setting, taken as an example:
+
+	Boot -> PXE ROM			[Enabled]
+	Boot -> Boot Option #1		[IBA GE Slot 00C8 v1376]
+
+Upon power up, PXE ROM will perform DHCP to acquire a network and server
+address, and load the PXELINUX bootloader from the server via TFTP. PXELINUX
+then loads the kernel image (via TFTP) and boots using PXE-supplied command
+line parameters. If PXE ROM is unavailable on the target, please use gPXE 
+instead.
+
+4.1.2 SATA, USB and SAS
+-----------------------
+
+To boot from SATA, USB and SAS disks, please select the right devices from the
+BIOS "Boot" sub-menu. GRUB must be installed on the boot disk partition.
+Assuming "/dev/sda1" is the boot partition, the following commands can be
+used:
+
+	$ mount /dev/sda1 /mnt/
+	$ grub-install --root-directory=/mnt/ /dev/sda
+	$ vi /mnt/boot/grub/menu.lst
+
+	default        0
+	timeout        6
+
+	title           WRLinux BSP Booting
+	root            (hd0,0)
+	kernel          /boot/bzImage root=/dev/sda1 rw ip=dhcp
+
+In the GRUB configuration file "/mnt/boot/grub/menu.lst", please make sure
+that the 'root' option and the 'kernel' option have the right settings.
+For detailed instructions on installing and booting Wind River Linux
+from a hard disk, please see the User's Guide. Note: In 6.0 and some linux
+distributions, grub2 is used instead of grub. To maintain simplicity and
+compatibility, this document uses the grub style configuration and
+command. At the last step, use grub-menulst2cfg to convert the configuration
+file to the grub2-style:
+
+	$ grub-menulst2cfg /mnt/boot/grub/menu.lst /mnt/boot/grub/grub.cfg
+
+The only thing different from SATA/SAS when booting from a USB device is that 
+you should pass "rootwait" to the kernel, which specifies that the kernel
+will wait for the root device to show up, otherwise the kernel cannot detect 
+the USB storage device when mounting rootfs.
+
+4.1.3 CD/DVD Drive
+------------------
+As with SATA, USB and SAS disks, a CD/DVD Drive can be selected as the boot 
+device in the BIOS "Boot" sub-menu.
+
+4.1.4 EFI
+---------
+
+Modern EFI-based computers require that linux boot using EFI boot mode. 
+The EFI boot method can be selected as the boot device in the BIOS "Boot"
+sub-menu. It is usually indicated by the option "Built-in EFI Shell".
+
+To enable the EFI boot method, for example, use an USB device formated to FAT32
+filesystem as storage, then copy the kernel file to /EFI/wrl/bzImage.efi
+on the USB device. Note that the kernel filename must end in .efi, and kernel 
+file must be stored in its own subdirectory of the /EFI directory on storage. 
+The last step is to create a script named startup.nsh with the following 
+content:
+
+	fs0:\EFI\wrl\bzImage.efi <kernel_parameters>
+
+EFI Shell will automatically execute startup.nsh to load bzImage.efi, and
+the built-in boot loader within bzImage.efi will boot the kernel to pass the
+system control to linux OS.
+
+Please contact the manufacturer to update firmware if the screen hangs
+when startup.sh is invoked.
+
+4.2 Rootfs methods
+==================
+
+The SATA/SAS hard disk, USB storage device, NFS are
+enabled in the kernel as potential root filesystem devices.
+
+4.2.1 SATA/SAS
+--------------
+
+Use SATA hard disk as rootfs with this kernel parameter:
+
+	root=/dev/sd<x><y> rw ip=dhcp
+
+For example:
+
+	root=/dev/sda1 rw ip=dhcp
+
+In the example shown above, the first SATA hard disk detected by linux is
+used as the device having rootfs, and the first partition inside it is used
+as rootfs.
+
+4.2.2 USB
+---------
+
+Use a USB storage device as rootfs with this kernel parameter:
+
+	root=/dev/sd<x><y> rw ip=dhcp rootwait
+
+For example:
+
+	root=/dev/sdc1 rw ip=dhcp rootwait
+
+This is similar to SATA rootfs. "rootwait" tells the kernel to wait for the 
+root device become available before attempting to mount the rootfs. This 
+option is useful for certain targets with slow USB response times.
+
+4.2.3 NFS
+---------
+
+Use NFS as rootfs with this kernel parameter:
+
+	root=/dev/nfs rw nfsroot=<nfs_server_ip>:<path_to_rootfs> ip=dhcp
+
+For example:
+
+	root=/dev/nfs rw nfsroot=192.168.0.1:/export/pxeboot/boards/rootfs ip=dhcp
+
+In the example shown above, an nfs server is located at 192.168.0.1, and the
+exported mount point via nfs makes /export/pxeboot/boards/rootfs available.
+
+4.2.4 initramfs on tiny filesystem
+----------------------------------
+
+Use initramfs as rootfs in EFI boot with the following steps:
+
+       fs0:\> bzImage.efi initrd=./wrlinux-image-tiny-initramfs-amd-snowyowl.cpio.gz
+
+Or if bzImage-initramfs.efi is equal to bzImage + initramfs:
+
+       fs0:\> bzImage-initramfs.efi console=ttyS0,115200
+
+Note:
+  Not all standard kernel config fragments of this BSP are enabled in the 
+  WRLinux tiny kernel and filesystem. You can easily add required fragments as 
+  follows:
+
+       # cd path_to_your_project/build
+       # bitbake -c menuconfig linux-windriver
+       # bitbake linux-windriver
+
+  Or use the following command to re-config busybox:
+       # bitbake -c menuconfig busybox
+
+4.3 Boot from the Live Images
+========================
+
+WRLinux supports the ISO, USB and HDD images boot, and all of those images support both
+legacy PCBIOS and UEFI boot. When use UEFI boot method, these three Live Images are all
+use grub-efi as bootloader.
+
+4.3.1 ISO Image
+----------------
+
+The way to get the ISO image is to add IMAGE_FSTYPES += "iso" to conf/local.con
+"echo 'IMAGE_FSTYPES += "iso"' >> conf/local.conf", and then bitbake rootfs, after that, you can access the ISO image in
+<project_dir>/tmp/deploy/images/ directory.
+
+After you get the ISO image, you can burn it onto an optical disk or "dd" it onto a flash
+disk to boot on your board just as the USB image does.
+
+4.3.2 HDD Image
+-----------------
+
+To get a HDD image, you must add  "IMAGE_FSTYPES += "hddimg"" to conf/local.conf.
+After that, build rootfs with bitbake, you will get it under tmp/deploy/images/<bsp name>/  directory,such as:
+tmp/deploy/images/amd-snowyowl/amd-snowyowl-wrlinux-image-glibc-std-standard-dist.hddimg.
+
+The method of deploying this image is the same as USB image does.
+
+5. Features
+===========
+
+This section describes common features which are available on most targets.
+
+5.1 SP5100 TCO Watchdog
+======================
+
+5.1.1 Introduction
+------------------
+
+The AMD TCO timer-based watchdog device will reboot the machine after its 
+timer expires (30/60 seconds by default).
+
+5.1.2 Usage and verification
+----------------------------
+
+The TCO Watchdog can be accessed via /dev/watchdog. To reboot the machine,
+write a value to the TCO Watchdog like this:
+
+	$ echo 1 > /dev/watchdog
+
+To stop the watchdog, run:
+
+	$ echo V > /dev/watchdog
+
+Note:
+The watchdog cannot be stopped once it has been started if
+CONFIG_WATCHDOG_NOWAYOUT is enabled.
+Before use /dev/watchdog, you need disable watchdog.service
+to stop the watchdog daemon to use it to avoid "Device busy" error.
+
+5.1.3 Target Notes
+------------------
+
+1) On some targets, the driver fails to print "Watchdog hardware is disabled"
+in such case watchdog deemed to be unsupported. Please refer to README.hardware
+for details about the targets affected by this problem
+
+
+5.2 CPU Hot Plug
+================
+
+5.2.1 Introduction
+------------------
+
+This feature allows turning CPUs off and on. CPUs can be controlled through
+/sys/devices/system/cpu.
+
+5.2.2 Usage and verification
+----------------------------
+
+1) Unplug non-bootstrap CPUs from system:
+
+	$ for i in `seq 1 <x>`; do echo 0 > /sys/devices/system/cpu/cpu$i/online; done
+
+where <x> indicates the last logical CPU id in your machine.
+
+2) Check the result to see the status of non-bootstrap CPUs:
+
+	$ for i in `seq 1 <x>`; do cat /sys/devices/system/cpu/cpu$i/online; done
+
+If step 1 successes, the result will return all zeros, indicating that the CPUs
+are removed from system.
+
+3) Replug non-bootstrap CPUs:
+
+	$ for i in `seq 1 <x>`; do echo 1 > /sys/devices/system/cpu/cpu$i/online; done
+
+4) Check the result to see the status of non-bootstrap CPUs again:
+
+	$ for i in `seq 1 <x>`; do cat /sys/devices/system/cpu/cpu$i/online; done
+
+The expected result will return all 1s, indicating that the CPUs are online now.
+
+5.2.3 Target Notes
+------------------
+
+Bootstrap CPU is always numbered with zero and does *NOT* support CPU Hot Plug.
+
+5.3 CPUidle (ACPI C-states)
+===========================
+
+5.3.1 Introduction
+------------------
+
+CPU idle is a generic framework for supporting software-controlled idle
+processor power management. It includes modular cross-platform governors that
+can be swapped during runtime. For the x86 architecture, a generic cpuidle 
+driver called acpi_idle is provided to support ACPI-enabled machines. 
+
+5.3.2 Usage and verification
+----------------------------
+
+You must use "cpuidle_sysfs_switch" in your kernel parameters, and then
+follow the step below:
+
+	$ cat /sys/devices/system/cpu/cpu0/cpuidle/*/usage
+
+where the each line of results represents the number of times this state was
+entered.
+
+
+5.4 CPUfreq (ACPI P-states)
+===========================
+
+5.4.1 Introduction
+------------------
+
+This feature allows you to change the clock speed of CPUs on the fly. This is
+useful for saving power because the lower the CPU clock speed, the less
+power the CPU consumes.   
+
+5.4.2 Usage and verification
+------------------------------
+
+1) Load the necessary driver and governor:
+
+	$ modprobe acpi_cpufreq; modprobe cpufreq_powersave
+
+2) Check with the availability of governor:
+
+	$ cd /sys/devices/system/cpu
+	$ cat cpu0/cpufreq/scaling_available_governors 
+
+"powersave" and "performance" will be returned.
+
+3) Degrade all CPUs in the system:
+
+	$ for i in `seq 0 <x>`; do echo powersave > cpu$i/cpufreq/scaling_governor; done
+
+where <x> indicates the last logical CPU id in your system.
+
+4) Check the current frequency:
+
+	$ cat cpu0/cpufreq/scaling_cur_freq 
+	1199000
+
+In this example the CPU is running at 1.2MHz after changing the frequency.
+
+5) Get the performance using a tight loop:
+
+	$ time for i in `seq 100000`; do echo a > /dev/null; done
+	real	0m2.577s
+	user	0m1.384s
+	sys	0m1.180s
+
+6) Upgrade all CPUs on the system:
+
+	$ for i in `seq 0 <x>`; do echo performance > cpu$i/cpufreq/scaling_governor; done
+
+7) Check the current frequency again:
+
+	$ cat cpu0/cpufreq/scaling_cur_freq
+	2667000
+
+In this example the CPU is running at 2.67MHz after changing the frequency.
+
+8) Get the performance using a tight loop for comparison:
+
+	$ time for i in `seq 100000`; do echo a > /dev/null; done
+	real	0m0.936s
+	user	0m0.516s
+	sys	0m0.420s
+
+5.5 SATA (AHCI)
+===============
+
+5.5.1 Introduction
+------------------
+
+The AHCI SATA controllers offers selectable modes of operation: legacy Parallel
+ATA emulation (IDE), standard AHCI mode, and vendor-specific RAID (which
+generally enables AHCI in order to take advantage of its capabilities). This
+BSP supports the later 2 modes.
+
+5.5.2 System requirements
+-------------------------
+
+You must configure the BIOS properly to enable the standard
+AHCI mode.Follow this path and setting:
+
+5.5.3 Usage and verification
+----------------------------
+
+1) Use a SATA hard disk as boot device and install rootfs to it.
+2) eSATA supports hot plugging, so the cable can be disconnected and then 
+reconnected at runtime.
+
+5.6 USB xHCI Host and USB 3.0 Storage Device
+============================================
+
+5.6.1 Introduction
+------------------
+
+The eXtensible Host Controller Interface (xHCI) is standard for USB 3.0
+"SuperSpeed" host controller hardware.
+
+5.6.2 System requirements
+-------------------------
+
+An USB 3.0 stroage device is required.
+
+5.6.3 Usage and verification
+----------------------------
+
+1) Use hdparm to benchmark the performance between USB 2.0 and 3.0:
+
+	$ hdparm -tT /dev/sdc /dev/sdd
+
+	/dev/sdc:
+	 Timing cached reads:   11072 MB in  2.00 seconds = 5542.04 MB/sec
+	 Timing buffered disk reads:   28 MB in  3.11 seconds =   9.01 MB/sec
+
+	/dev/sdd:
+	 Timing cached reads:   12274 MB in  2.00 seconds = 6144.48 MB/sec
+	 Timing buffered disk reads:  234 MB in  3.01 seconds =  77.64 MB/sec
+
+Note:
+/dev/sdc is a USB 2.0 storage device attached on USB 2.0 port.
+/dev/sdd is a USB 3.0 storage device attached on USB 3.0 port.
+
+	$ hdparm -tT /dev/sdc /dev/sdd
+
+	/dev/sdc:
+	 Timing cached reads:   11172 MB in  2.00 seconds = 5591.51 MB/sec
+	 Timing buffered disk reads:   28 MB in  3.03 seconds =   9.23 MB/sec
+
+	/dev/sdd:
+	 Timing cached reads:   12110 MB in  2.00 seconds = 6061.86 MB/sec
+	 Timing buffered disk reads:   96 MB in  3.04 seconds =  31.62 MB/sec
+
+Note:
+/dev/sdc is a USB 2.0 storage device attached on USB 3.0 port.
+/dev/sdd is a USB 3.0 storage device attached on USB 2.0 port.
+
+2) Use an USB 3.0 storage device as boot device and install rootfs on it:
+
+
+5.7 SMBus
+==========
+
+5.7.1 Introduction
+-------------------
+
+AMD I2C interfaces.
+
+5.7.2 Usage and verification
+-----------------------------
+
+Check the SMBus device:
+
+	$ dmesg | grep SMBus
+
+you will see somethig like this:
+[    4.545973] piix4_smbus 0000:00:14.0: SMBus Host Controller at 0xb00, revision 0
+
+5.7.3 Target Notes
+-------------------
+
+On some boards an ACPI resource conflicts with SMBus. By default, the
+functionality of SMBus is disabled. To enable SMBus, please append
+"acpi_enforce_resources=lax" to your kenrel parameters.
