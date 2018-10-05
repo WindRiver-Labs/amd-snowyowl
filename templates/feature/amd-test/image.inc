@@ -1,5 +1,0 @@
-IMAGE_INSTALL_append = " gpio-test"
-IMAGE_INSTALL_append = " rtc-test"
-IMAGE_INSTALL_append = " smbus-test"
-IMAGE_INSTALL_append = " spi-test"
-IMAGE_INSTALL_append = " watchdog-test"
