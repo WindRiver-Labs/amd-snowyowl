@@ -110,6 +110,9 @@ kernel parameter.
 2) dmesg show "ttyS0 - failed to request DMA" this should be hardware issue
    and won't impact the using of ttyS0 console.
 
+3) dmesg show "ccp 0000:03:00.2: SEV: failed to INIT error 0x8004"
+   this is hardware issue on some board.
+
 
 3.1.5 Notes
 ------------
