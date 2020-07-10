@@ -79,7 +79,6 @@ the corresponding h/w features exist.
 
   o Power Management
 	+ Standby: BIOS needs to support ACPI S1
-	+ CPU Freq: BIOS needs to support ACPI P-state
 	+ CPU Idle: BIOS needs to support ACPI C-state
 
   o Misc Devices
@@ -96,6 +95,7 @@ The following features are not supported or validated:
 1) AMD Watchdog
 2) S3 and S4
 3) Onboard Audio
+4) CPU Freq
 
 
 3.1.4 Known Issues 
