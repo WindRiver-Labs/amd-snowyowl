@@ -113,6 +113,10 @@ kernel parameter.
 3) dmesg show "ccp 0000:03:00.2: SEV: failed to INIT error 0x8004"
    this is hardware issue on some board.
 
+4) LTP msgstress test may get "general protection fault: 0000 1 PREEMPT SMP NOPTI"
+   error, we still don't find the root cause of it, and it is also reproducible
+   on the latest mainline kernel with this AMD board.
+
 
 3.1.5 Notes
 ------------
